@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apidiff"
+version = "0.1.0"
+description = "Semantic API diff tool — detects behavioral regressions, not just schema changes"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["api", "diff", "testing", "semantic", "regression"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Testing",
+]
+
+dependencies = [
+    "haralyzer>=1.9.1",
+    "scipy>=1.13.0",
+    "numpy>=1.26.4",
+    "rich>=13.7.1",
+    "typer>=0.12.3",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+proxy = [
+    "mitmproxy>=10.3.1",
+]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+apidiff = "cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["capture*", "extractor*", "fingerprint*", "engine*", "reporter*", "cli*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

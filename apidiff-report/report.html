@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>apidiff Report</title>
+<style>
+:root {
+  --critical: #ef4444; --high: #f97316; --medium: #eab308; --low: #94a3b8;
+  --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --text: #e2e8f0;
+  --text-muted: #94a3b8; --border: #334155; --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+a { color: #60a5fa; }
+
+/* Layout */
+.header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1px solid var(--border); padding: 2rem; }
+.header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+.header h1 span { color: #60a5fa; }
+.header p { color: var(--text-muted); margin-top: 0.25rem; font-size: 0.9rem; }
+.container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+/* Summary badges */
+.summary-bar { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+.badge { display: flex; flex-direction: column; align-items: center; padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem; border: 1px solid; min-width: 90px; }
+.badge .count { font-size: 2rem; font-weight: 800; line-height: 1; }
+.badge .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem; }
+.badge.critical { background: #450a0a; border-color: var(--critical); color: var(--critical); }
+.badge.high     { background: #431407; border-color: var(--high); color: var(--high); }
+.badge.medium   { background: #422006; border-color: var(--medium); color: var(--medium); }
+.badge.low      { background: #1e293b; border-color: var(--low); color: var(--low); }
+.badge.total    { background: var(--surface); border-color: #475569; color: var(--text); }
+
+/* Controls */
+.controls { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+.controls input, .controls select {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; outline: none;
+}
+.controls input:focus, .controls select:focus { border-color: #60a5fa; }
+.controls input { min-width: 250px; }
+.controls label { color: var(--text-muted); font-size: 0.85rem; }
+
+/* Table */
+.findings-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.findings-table thead { background: var(--surface); position: sticky; top: 0; z-index: 10; }
+.findings-table th {
+  padding: 0.75rem 1rem; text-align: left; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem;
+  border-bottom: 2px solid var(--border); cursor: pointer; user-select: none;
+  white-space: nowrap;
+}
+.findings-table th:hover { color: var(--text); }
+.findings-table th .sort-icon { margin-left: 0.3rem; opacity: 0.5; }
+.findings-table th.active .sort-icon { opacity: 1; color: #60a5fa; }
+.findings-table tbody tr {
+  border-bottom: 1px solid var(--border); transition: background 0.15s; cursor: pointer;
+}
+.findings-table tbody tr:hover { background: var(--surface); }
+.findings-table tbody tr.expanded { background: var(--surface); }
+.findings-table td { padding: 0.75rem 1rem; vertical-align: top; }
+
+/* Severity pill */
+.pill { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px;
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.pill.critical { background: #450a0a; color: var(--critical); border: 1px solid var(--critical); }
+.pill.high     { background: #431407; color: var(--high); border: 1px solid var(--high); }
+.pill.medium   { background: #422006; color: var(--medium); border: 1px solid var(--medium); }
+.pill.low      { background: #1e293b; color: var(--low); border: 1px solid var(--low); }
+
+/* Detail row */
+.detail-row td { padding: 0; border-bottom: 2px solid #60a5fa33; }
+.detail-content { padding: 1rem 1.5rem 1.5rem; animation: slideDown 0.2s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.evidence-box { background: var(--bg); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; }
+.evidence-box h4 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); margin-bottom: 0.5rem; }
+.evidence-box pre { font-family: 'Courier New', monospace; font-size: 0.8rem;
+  color: #a5f3fc; white-space: pre-wrap; word-break: break-all; }
+.description-text { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+.type-badge { font-size: 0.75rem; color: #a5f3fc; font-family: monospace; }
+.no-findings { text-align: center; padding: 4rem; color: var(--text-muted); }
+.no-findings .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+/* Pagination */
+.pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; }
+.page-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 0.4rem 0.8rem; border-radius: 0.4rem; cursor: pointer; font-size: 0.85rem; }
+.page-btn:hover { background: var(--surface2); }
+.page-btn.active { background: #1e40af; border-color: #60a5fa; }
+
+/* JSON block */
+.json-section { margin-top: 3rem; }
+.json-section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-muted); }
+.json-block { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem;
+  padding: 1.5rem; font-family: monospace; font-size: 0.78rem; color: #a5f3fc;
+  white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+.copy-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 0.4rem 0.8rem; border-radius: 0.4rem; cursor: pointer; font-size: 0.8rem;
+  margin-bottom: 0.5rem; }
+.copy-btn:hover { background: #475569; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="max-width:1400px;margin:0 auto">
+    <h1><span>api</span>diff — Semantic API Diff Report</h1>
+    <p>Behavioral regression analysis between API versions</p>
+  </div>
+</div>
+<div class="container">
+  <div id="summary-bar" class="summary-bar"></div>
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search endpoints, fields, descriptions..." oninput="render()">
+    <label>Severity:
+      <select id="sev-filter" onchange="render()">
+        <option value="">All</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </label>
+    <label>Type:
+      <select id="type-filter" onchange="render()">
+        <option value="">All Types</option>
+      </select>
+    </label>
+  </div>
+
+  <table class="findings-table">
+    <thead>
+      <tr>
+        <th onclick="sortBy('severity')" id="th-severity">Severity <span class="sort-icon">↕</span></th>
+        <th onclick="sortBy('type')" id="th-type">Type <span class="sort-icon">↕</span></th>
+        <th onclick="sortBy('endpoint')" id="th-endpoint">Endpoint <span class="sort-icon">↕</span></th>
+        <th>Field</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody id="findings-body"></tbody>
+  </table>
+  <div class="pagination" id="pagination"></div>
+
+  <div class="json-section">
+    <h2>Raw findings.json</h2>
+    <button class="copy-btn" onclick="copyJson()">Copy JSON</button>
+    <pre class="json-block" id="raw-json"></pre>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  "summary": {
+    "total": 2,
+    "by_severity": {
+      "critical": 1,
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "findings": [
+    {
+      "type": "enum_rename",
+      "severity": "critical",
+      "endpoint": "GET /compute/{id}",
+      "field": "error",
+      "description": "The categorical field 'error' on 'GET /compute/{id}' changed its set of values. Removed: ['oops'], added: ['fail']. Consumers checking for specific values will break.",
+      "v1_evidence": {
+        "values": [
+          "oops"
+        ]
+      },
+      "v2_evidence": {
+        "values": [
+          "fail"
+        ]
+      }
+    },
+    {
+      "type": "error_rate_increase",
+      "severity": "high",
+      "endpoint": "GET /compute/{id}",
+      "field": null,
+      "description": "Error rate (4xx/5xx) for 'GET /compute/{id}' increased by 16.7% (from 3.3% in v1 to 20.0% in v2, threshold: >5pp).",
+      "v1_evidence": {
+        "error_rate": 0.03333333333333333
+      },
+      "v2_evidence": {
+        "error_rate": 0.2
+      }
+    }
+  ]
+};
+
+const SEV_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
+const PAGE_SIZE = 25;
+let currentPage = 1;
+let sortKey = 'severity';
+let sortDir = -1;
+let expandedRow = null;
+
+// Populate summary badges
+function renderSummary() {
+  const s = DATA.summary;
+  const bar = document.getElementById('summary-bar');
+  const cfg = [
+    { key: 'total', label: 'Total', count: s.total },
+    { key: 'critical', label: 'Critical', count: s.by_severity.critical || 0 },
+    { key: 'high',     label: 'High',     count: s.by_severity.high || 0 },
+    { key: 'medium',   label: 'Medium',   count: s.by_severity.medium || 0 },
+    { key: 'low',      label: 'Low',      count: s.by_severity.low || 0 },
+  ];
+  bar.innerHTML = cfg.map(c =>
+    `<div class="badge ${c.key}"><span class="count">${c.count}</span><span class="label">${c.label}</span></div>`
+  ).join('');
+}
+
+// Populate type filter dropdown
+function populateTypeFilter() {
+  const types = [...new Set(DATA.findings.map(f => f.type))].sort();
+  const sel = document.getElementById('type-filter');
+  types.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t.replace(/_/g,' ');
+    sel.appendChild(opt);
+  });
+}
+
+function getFiltered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const sev = document.getElementById('sev-filter').value;
+  const typ = document.getElementById('type-filter').value;
+  return DATA.findings.filter(f => {
+    if (sev && f.severity !== sev) return false;
+    if (typ && f.type !== typ) return false;
+    if (q && ![f.endpoint, f.field||'', f.description, f.type].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function sortBy(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = key === 'severity' ? -1 : 1; }
+  document.querySelectorAll('th').forEach(th => th.classList.remove('active'));
+  const th = document.getElementById('th-' + key);
+  if (th) th.classList.add('active');
+  currentPage = 1;
+  render();
+}
+
+function sorted(arr) {
+  return [...arr].sort((a, b) => {
+    if (sortKey === 'severity') return sortDir * (SEV_RANK[b.severity] - SEV_RANK[a.severity]);
+    const av = a[sortKey] || '', bv = b[sortKey] || '';
+    return sortDir * av.localeCompare(bv);
+  });
+}
+
+function render() {
+  const filtered = sorted(getFiltered());
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  currentPage = Math.min(currentPage, pages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filtered.slice(start, start + PAGE_SIZE);
+
+  const tbody = document.getElementById('findings-body');
+  tbody.innerHTML = '';
+  expandedRow = null;
+
+  if (page.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="no-findings"><div class="icon">🔍</div><p>No findings match your filters.</p></div></td></tr>';
+  } else {
+    page.forEach((f, i) => {
+      const tr = document.createElement('tr');
+      tr.id = 'row-' + i;
+      tr.innerHTML = `
+        <td><span class="pill ${f.severity}">${f.severity}</span></td>
+        <td><span class="type-badge">${f.type.replace(/_/g,' ')}</span></td>
+        <td><code style="font-size:0.8rem">${f.endpoint}</code></td>
+        <td style="color:#94a3b8">${f.field || '—'}</td>
+        <td style="color:#cbd5e1;font-size:0.82rem">${f.description.substring(0,120)}${f.description.length>120?'…':''}</td>
+      `;
+      tr.onclick = () => toggleDetail(f, i);
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Pagination
+  const pag = document.getElementById('pagination');
+  pag.innerHTML = '';
+  for (let p = 1; p <= pages; p++) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+    btn.textContent = p;
+    btn.onclick = () => { currentPage = p; render(); };
+    pag.appendChild(btn);
+  }
+}
+
+function toggleDetail(f, i) {
+  const existingDetail = document.getElementById('detail-' + i);
+  if (existingDetail) { existingDetail.remove(); document.getElementById('row-'+i).classList.remove('expanded'); return; }
+  if (expandedRow !== null) {
+    const old = document.getElementById('detail-' + expandedRow);
+    if (old) old.remove();
+    const oldRow = document.getElementById('row-' + expandedRow);
+    if (oldRow) oldRow.classList.remove('expanded');
+  }
+  expandedRow = i;
+  document.getElementById('row-'+i).classList.add('expanded');
+  const det = document.createElement('tr');
+  det.id = 'detail-' + i;
+  det.className = 'detail-row';
+  det.innerHTML = `<td colspan="5"><div class="detail-content">
+    <p class="description-text">${f.description}</p>
+    <div class="evidence-grid">
+      <div class="evidence-box"><h4>v1 Evidence</h4><pre>${JSON.stringify(f.v1_evidence, null, 2)}</pre></div>
+      <div class="evidence-box"><h4>v2 Evidence</h4><pre>${JSON.stringify(f.v2_evidence, null, 2)}</pre></div>
+    </div>
+  </div></td>`;
+  const row = document.getElementById('row-' + i);
+  row.insertAdjacentElement('afterend', det);
+}
+
+function copyJson() {
+  navigator.clipboard.writeText(JSON.stringify(DATA, null, 2))
+    .then(() => { const btn = document.querySelector('.copy-btn'); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy JSON',2000); });
+}
+
+document.getElementById('raw-json').textContent = JSON.stringify(DATA, null, 2);
+renderSummary();
+populateTypeFilter();
+render();
+</script>
+</body>
+</html>

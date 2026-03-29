@@ -1,0 +1,3 @@
+@echo off
+echo Running apidiff semantic test demo...
+python -m cli.main run --v1-har tests/fixtures/enum_rename/v1.har --v2-har tests/fixtures/enum_rename/v2.har --out-dir apidiff-demo

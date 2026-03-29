@@ -1,0 +1,102 @@
+{
+  "endpoints": {
+    "GET /items/{id}": {
+      "endpoint_key": "GET /items/{id}",
+      "value_distributions": [
+        {
+          "field_path": "id",
+          "value_counts": {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "15": 1,
+            "16": 1,
+            "17": 1,
+            "18": 1,
+            "19": 1,
+            "20": 1,
+            "21": 1,
+            "22": 1,
+            "23": 1,
+            "24": 1,
+            "25": 1,
+            "26": 1,
+            "27": 1,
+            "28": 1,
+            "29": 1,
+            "30": 1
+          },
+          "numeric_percentiles": {
+            "10": 3.9000000000000004,
+            "25": 8.25,
+            "50": 15.5,
+            "75": 22.75,
+            "90": 27.1,
+            "99": 29.71
+          },
+          "is_categorical": false,
+          "entropy": 4.906890595608519
+        },
+        {
+          "field_path": "status",
+          "value_counts": {
+            "disabled": 1,
+            "enabled": 1
+          },
+          "numeric_percentiles": {},
+          "is_categorical": true,
+          "entropy": 1.0
+        },
+        {
+          "field_path": "category",
+          "value_counts": {
+            "A": 1
+          },
+          "numeric_percentiles": {},
+          "is_categorical": true,
+          "entropy": 0.0
+        }
+      ],
+      "co_occurrences": [
+        {
+          "field_a": "category",
+          "field_b": "id",
+          "p_b_given_a": 1.0,
+          "condition_value": "A"
+        },
+        {
+          "field_a": "category",
+          "field_b": "status",
+          "p_b_given_a": 1.0,
+          "condition_value": "A"
+        }
+      ],
+      "idempotency": {
+        "endpoint_key": "GET /items/{id}",
+        "sample_size": 0,
+        "is_idempotent": false,
+        "variance_rate": 0.0,
+        "unknown": true
+      },
+      "latency_p50": 50.0,
+      "latency_p99": 50.0,
+      "error_rate": 0.0,
+      "status_codes": [
+        200
+      ]
+    }
+  },
+  "schema_hash": "edd819291286bd46",
+  "created_at": "2026-03-29T00:03:44.717944+00:00"
+}
